@@ -1,0 +1,169 @@
+{
+  "id": "initial-menu",
+  "title": "University Canteen Lunch Builder",
+  "description": "Choose one option for each meal category to complete today's lunch menu.",
+  "categories": [
+    {
+      "id": "vegetarian-lunch",
+      "label": "Vegetarian Lunch",
+      "description": "Pick a vegetarian lunch choice, or choose No Vegetarian Lunch.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "id": "main-lunch",
+      "label": "Main Lunch",
+      "description": "Pick a main lunch choice, or choose No Lunch.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "id": "soup",
+      "label": "Soup",
+      "description": "Pick a soup choice, or choose No Soup.",
+      "required": true,
+      "order": 3
+    },
+    {
+      "id": "dessert",
+      "label": "Dessert",
+      "description": "Pick a dessert choice, or choose No Dessert.",
+      "required": true,
+      "order": 4
+    }
+  ],
+  "items": [
+    {
+      "id": "veggie-patty",
+      "categoryId": "vegetarian-lunch",
+      "label": "Vegetable patty",
+      "imagePath": "images/file-6a43892e40e10.jpg",
+      "altText": "Crispy vegetable patties on paper squares.",
+      "order": 1,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "pasta-salad",
+      "categoryId": "vegetarian-lunch",
+      "label": "Pasta salad",
+      "imagePath": "images/file-6a4389965b69d.jpg",
+      "altText": "A bowl of creamy pasta salad with vegetables.",
+      "order": 2,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "no-vegetarian-lunch",
+      "categoryId": "vegetarian-lunch",
+      "label": "No Vegetarian Lunch",
+      "imagePath": "images/file-6a4b794507e5e.png",
+      "altText": "A dramatic image with text asking No Vegi Lunch?",
+      "order": 3,
+      "active": true,
+      "itemType": "noLunch",
+      "rules": {
+        "countsAsNoLunch": true
+      }
+    },
+    {
+      "id": "rice-meat-plate",
+      "categoryId": "main-lunch",
+      "label": "Rice and meat plate",
+      "imagePath": "images/file-6a4b6907efef6.jpg",
+      "altText": "A plate with rice, meat, broccoli, and chopsticks.",
+      "order": 1,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "meat-rolls",
+      "categoryId": "main-lunch",
+      "label": "Meat rolls",
+      "imagePath": "images/file-6a438a5180415.jpg",
+      "altText": "Slices of meat rolled with lettuce and tomato.",
+      "order": 2,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "no-main-lunch",
+      "categoryId": "main-lunch",
+      "label": "No Lunch",
+      "imagePath": "images/file-6a4b79303034c.png",
+      "altText": "A lunch tray image with large No Lunch text.",
+      "order": 3,
+      "active": true,
+      "itemType": "noLunch",
+      "rules": {
+        "countsAsNoLunch": true
+      }
+    },
+    {
+      "id": "orange-soup",
+      "categoryId": "soup",
+      "label": "Orange soup",
+      "imagePath": "images/file-6a4b79f8c6abf.jpg",
+      "altText": "A bowl of orange soup with green herbs.",
+      "order": 1,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "tomato-soup",
+      "categoryId": "soup",
+      "label": "Tomato soup",
+      "imagePath": "images/file-6a438c143b9cd.jpg",
+      "altText": "A white bowl filled with red tomato soup.",
+      "order": 2,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "no-soup",
+      "categoryId": "soup",
+      "label": "No Soup",
+      "imagePath": "images/file-6a4b797256c6d.png",
+      "altText": "An empty soup bowl image with large No Soup text.",
+      "order": 3,
+      "active": true,
+      "itemType": "noLunch",
+      "rules": {
+        "countsAsNoLunch": true
+      }
+    },
+    {
+      "id": "chocolate-cake",
+      "categoryId": "dessert",
+      "label": "Chocolate cake",
+      "imagePath": "images/file-6a4b66f2df9bc.jpg",
+      "altText": "A slice of chocolate cake with raspberries.",
+      "order": 1,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "berry-cheesecake",
+      "categoryId": "dessert",
+      "label": "Berry cheesecake",
+      "imagePath": "images/file-6a4b67223a163.jpg",
+      "altText": "Small cheesecake bars with berries on a plate.",
+      "order": 2,
+      "active": true,
+      "itemType": "food"
+    },
+    {
+      "id": "no-dessert",
+      "categoryId": "dessert",
+      "label": "No Dessert",
+      "imagePath": "images/file-6a4b79a37ec67.png",
+      "altText": "A chocolate cake character image with large No Dessert text.",
+      "order": 3,
+      "active": true,
+      "itemType": "noLunch",
+      "rules": {
+        "countsAsNoLunch": true
+      }
+    }
+  ]
+}
