@@ -1,11 +1,14 @@
 import type { GameFeedback } from '../game/useLunchGame'
+import type { MenuConfig } from '../types/menu'
+import { getItemById } from '../game/validation'
 
 interface FeedbackDialogProps {
   feedback: GameFeedback
+  menu: MenuConfig
   onClose: () => void
 }
 
-export function FeedbackDialog({ feedback, onClose }: FeedbackDialogProps) {
+export function FeedbackDialog({ feedback, menu, onClose }: FeedbackDialogProps) {
   return (
     <div className="dialog-backdrop" role="presentation">
       <section
@@ -26,16 +29,36 @@ export function FeedbackDialog({ feedback, onClose }: FeedbackDialogProps) {
           ))}
         </div>
 
-        {feedback.result ? (
-          <pre className="feedback-dialog__result">
-            {JSON.stringify(feedback.result, null, 2)}
-          </pre>
-        ) : null}
+        {feedback.result ? <SubmissionSummary feedback={feedback} menu={menu} /> : null}
 
         <button type="button" className="button button--primary" onClick={onClose}>
           Close
         </button>
       </section>
+    </div>
+  )
+}
+
+function SubmissionSummary({ feedback, menu }: { feedback: GameFeedback; menu: MenuConfig }) {
+  if (!feedback.result) {
+    return null
+  }
+
+  return (
+    <div className="submission-summary">
+      <h3>Selected items</h3>
+      <dl>
+        {menu.categories.map((category) => {
+          const item = getItemById(menu, feedback.result?.selections[category.id] ?? null)
+
+          return (
+            <div key={category.id}>
+              <dt>{category.label}</dt>
+              <dd>{item?.label ?? 'Not selected'}</dd>
+            </div>
+          )
+        })}
+      </dl>
     </div>
   )
 }

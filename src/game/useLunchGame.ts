@@ -132,7 +132,7 @@ export function useLunchGame(menu: MenuConfig): LunchGameState {
 
       setFeedback({
         kind: 'success',
-        title: 'Lunch menu submitted',
+        title: 'Submission successful',
         messages: [`Score: ${score} of 20.`, 'Your completed lunch menu is ready.'],
         result,
       })

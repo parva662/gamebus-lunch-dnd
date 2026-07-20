@@ -1,6 +1,6 @@
 import type { CurrentMenuConfig, MenuCategory, MenuConfig, MenuItem } from '../types/menu'
 
-const MENU_ROOT = '/content/menus'
+const MENU_ROOT = `${normalizeBaseUrl(import.meta.env.BASE_URL)}content/menus`
 
 export class MenuLoadError extends Error {
   constructor(message: string) {
@@ -158,6 +158,10 @@ function resolveMenuAssetPath(menuId: string, imagePath: string): string {
   }
 
   return `${MENU_ROOT}/${menuId}/${imagePath.replace(/^\/+/, '')}`
+}
+
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
 }
 
 async function preloadImages(items: MenuItem[]): Promise<void> {

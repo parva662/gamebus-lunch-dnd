@@ -3,9 +3,10 @@ import { MenuItemCard } from './MenuItemCard'
 
 interface NoLunchOptionProps {
   item: MenuItem
+  state?: 'available' | 'selected'
   onChoose: (itemId: string) => void
 }
 
-export function NoLunchOption({ item, onChoose }: NoLunchOptionProps) {
-  return <MenuItemCard item={item} onChoose={onChoose} />
+export function NoLunchOption({ item, state = 'available', onChoose }: NoLunchOptionProps) {
+  return <MenuItemCard item={item} state={state} showCategory onChoose={onChoose} />
 }

@@ -1,16 +1,35 @@
 # GameBus Lunch Drag-and-Drop
 
-A modern React and TypeScript lunch-selection game for a university canteen. Learners choose one option for each meal category using drag-and-drop, click/tap buttons, or keyboard-accessible controls.
+A React and TypeScript lunch-selection game for a university canteen. Learners choose exactly one option for each meal category using compact cards, buttons, keyboard-accessible controls, and drag-and-drop where supported.
 
-The original H5P file is a functional reference only. Its visual layout and scoring model are intentionally replaced.
+The original H5P package is a functional reference only. Its fixed layout, visual design, and scoring model are intentionally not reproduced.
+
+## Versions
+
+- `v0-initial-layout`: Git tag preserving the first working React replacement.
+- `v1-compact-layout`: compact layout branch with a more spatially efficient interface.
+
+Version 1 keeps the same game rules and content architecture as the initial implementation. Quantity selection is not supported yet.
+
+## Version 1 Compact Layout
+
+Desktop uses a two-column structure:
+
+- Left column, about 65% width: Today's Menu, grouped by Vegetarian Lunch, Main Lunch, Soup, and Dessert.
+- Right column, about 35% width: sticky Your Selection panel with progress, four compact category slots, Reset, and Submit.
+
+Mobile layout:
+
+- Today's Menu appears first.
+- Your Selection appears below the menu.
+- Reset and Submit are available in a sticky bottom action bar.
+- Tap/click selection is the primary mobile interaction.
 
 ## Setup
 
 ```bash
 npm install
 ```
-
-Dependencies are already recorded in `package.json` and `package-lock.json`.
 
 ## Development
 
@@ -36,8 +55,8 @@ npm run preview
 - `reference/h5p-extracted`: extracted H5P contents.
 - `reference/H5P_ANALYSIS.md`: documented H5P behavior and interpretation.
 - `public/content/menus/current.json`: active menu pointer.
-- `public/content/menus/initial-menu/menu.json`: first menu configuration.
-- `public/content/menus/initial-menu/images`: menu image assets.
+- `public/content/menus/<menu-id>/menu.json`: monthly menu configuration.
+- `public/content/menus/<menu-id>/images`: monthly menu image assets.
 - `src/services/menuLoader.ts`: runtime menu loading and validation.
 - `src/types/menu.ts`: TypeScript menu and result types.
 - `src/game`: validation, scoring, result generation, and state logic.
@@ -53,9 +72,9 @@ The H5P scoring is ignored.
 - Maximum score: `20` points.
 - No partial scoring.
 
-## Submission Result Format
+## Submission Result
 
-A valid submission result contains:
+A valid submission result is generated and logged to the browser console for future GameBus integration:
 
 ```json
 {
@@ -71,11 +90,11 @@ A valid submission result contains:
 }
 ```
 
-For now, the result is shown in a success dialog and logged to the browser console. It is not sent to an external system.
+Participants see a friendly success dialog with the score and selected items, not raw JSON.
 
 ## GameBus Integration Status
 
-GameBus API integration is not implemented yet. The current app is a local, front-end-only game that prepares a clean submission result for a future integration.
+GameBus API integration is not implemented yet. The current app is a front-end-only game that prepares a structured submission object for future integration.
 
 ## Updating the Monthly Menu
 
@@ -109,10 +128,10 @@ Recommended images:
 
 ## Known Limitations
 
+- No quantity fields or quantity-based scoring.
 - No GameBus API integration.
 - No RAISE SDK integration.
 - No authentication.
 - No backend service, database storage, or admin upload interface.
 - No external analytics.
 - Monthly menus are edited as static JSON and image files.
-- The app validates image loading in the browser at runtime, not at compile time.

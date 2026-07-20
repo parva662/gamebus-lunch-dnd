@@ -2,6 +2,7 @@ interface ActionButtonsProps {
   completedCount: number
   requiredCount: number
   isSubmitting: boolean
+  compact?: boolean
   onReset: () => void
   onSubmit: () => void
 }
@@ -10,14 +11,16 @@ export function ActionButtons({
   completedCount,
   requiredCount,
   isSubmitting,
+  compact = false,
   onReset,
   onSubmit,
 }: ActionButtonsProps) {
   return (
-    <div className="actions" aria-label="Game actions">
-      <p aria-live="polite">
-        {completedCount} of {requiredCount} categories selected
-      </p>
+    <div className="actions" data-compact={compact} aria-label="Game actions">
+      <div className="actions__progress" aria-live="polite">
+        <span>{completedCount}</span>
+        <p>of {requiredCount} selected</p>
+      </div>
       <div className="actions__buttons">
         <button type="button" className="button button--secondary" onClick={onReset}>
           Reset

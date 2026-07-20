@@ -36,26 +36,15 @@ export function GameBoard({ menu, game }: GameBoardProps) {
           <div>
             <p className="app-header__eyebrow">University Canteen</p>
             <h1>{menu.title}</h1>
-            {menu.description ? <p>{menu.description}</p> : null}
+            <p>Choose one option per category.</p>
           </div>
-          <ActionButtons
-            completedCount={game.completedCategoryCount}
-            requiredCount={game.requiredCategoryCount}
-            isSubmitting={game.isSubmitting}
-            onReset={game.resetGame}
-            onSubmit={() => void game.submitGame()}
-          />
         </header>
 
-        <section className="instructions" aria-label="Instructions">
-          <p>Choose one option for each category. Drag cards into place, or use the Choose buttons.</p>
-        </section>
-
         <div className="game-layout">
-          <section className="choices-panel" aria-labelledby="choices-title">
+          <section className="choices-panel" id="today-menu" aria-labelledby="choices-title">
             <div className="panel-heading">
-              <h2 id="choices-title">Menu choices</h2>
-              <p>Available cards are grouped by category.</p>
+              <h2 id="choices-title">Today&apos;s Menu</h2>
+              <p>Tap Choose or drag a card into your selection.</p>
             </div>
 
             <div className="choice-groups">
@@ -67,10 +56,21 @@ export function GameBoard({ menu, game }: GameBoardProps) {
                     <h3 id={`${category.id}-choices`}>{category.label}</h3>
                     <div className="card-grid">
                       {items.map((item) =>
-                        selectedIds.has(item.id) ? null : isNoLunchItem(item) ? (
-                          <NoLunchOption key={item.id} item={item} onChoose={game.chooseItem} />
+                        isNoLunchItem(item) ? (
+                          <NoLunchOption
+                            key={item.id}
+                            item={item}
+                            state={selectedIds.has(item.id) ? 'selected' : 'available'}
+                            onChoose={game.chooseItem}
+                          />
                         ) : (
-                          <MenuItemCard key={item.id} item={item} onChoose={game.chooseItem} />
+                          <MenuItemCard
+                            key={item.id}
+                            item={item}
+                            state={selectedIds.has(item.id) ? 'selected' : 'available'}
+                            showCategory
+                            onChoose={game.chooseItem}
+                          />
                         ),
                       )}
                     </div>
@@ -80,11 +80,19 @@ export function GameBoard({ menu, game }: GameBoardProps) {
             </div>
           </section>
 
-          <section className="selection-panel" aria-labelledby="selection-title">
+          <aside className="selection-panel" aria-labelledby="selection-title">
             <div className="panel-heading">
               <h2 id="selection-title">Your lunch menu</h2>
-              <p>Each required category needs exactly one option.</p>
             </div>
+
+            <ActionButtons
+              compact
+              completedCount={game.completedCategoryCount}
+              requiredCount={game.requiredCategoryCount}
+              isSubmitting={game.isSubmitting}
+              onReset={game.resetGame}
+              onSubmit={() => void game.submitGame()}
+            />
 
             <div className="drop-zone-list">
               {menu.categories.map((category) => {
@@ -103,10 +111,32 @@ export function GameBoard({ menu, game }: GameBoardProps) {
                 )
               })}
             </div>
-          </section>
+          </aside>
         </div>
 
-        {game.feedback ? <FeedbackDialog feedback={game.feedback} onClose={game.closeFeedback} /> : null}
+        <div className="mobile-action-bar">
+          <ActionButtons
+            compact
+            completedCount={game.completedCategoryCount}
+            requiredCount={game.requiredCategoryCount}
+            isSubmitting={game.isSubmitting}
+            onReset={game.resetGame}
+            onSubmit={() => void game.submitGame()}
+          />
+        </div>
+
+        {game.feedback?.kind === 'info' ? (
+          <div className="live-status" role="status" aria-live="polite">
+            <strong>{game.feedback.title}</strong>
+            {game.feedback.messages.map((message) => (
+              <span key={message}>{message}</span>
+            ))}
+          </div>
+        ) : null}
+
+        {game.feedback && game.feedback.kind !== 'info' ? (
+          <FeedbackDialog feedback={game.feedback} menu={menu} onClose={game.closeFeedback} />
+        ) : null}
       </main>
     </DragDropProvider>
   )
