@@ -2,25 +2,30 @@ import { useCallback } from 'react'
 import { useDraggable } from '@dnd-kit/react'
 import type { MenuItem } from '../types/menu'
 import type { LunchDragWindow } from '../types/dragState'
-import { isNoLunchItem } from '../game/validation'
 
 interface MenuItemCardProps {
   item: MenuItem
-  state?: 'available' | 'selected' | 'completed'
-  compact?: boolean
+  quantity: number
+  categoryLabel: string
   draggable?: boolean
-  showCategory?: boolean
-  onChoose?: (itemId: string) => void
+  onChoose: (itemId: string) => void
+  onIncrease: (itemId: string) => void
+  onDecrease: (itemId: string) => void
 }
 
 export function MenuItemCard({
   item,
-  state = 'available',
-  compact = false,
+  quantity,
+  categoryLabel,
   draggable = true,
-  showCategory = false,
   onChoose,
+  onIncrease,
+  onDecrease,
 }: MenuItemCardProps) {
+  const selected = quantity > 0
+  const canIncrease = quantity + item.quantityStep <= item.maxQuantity
+  const canDecrease = quantity - item.quantityStep >= item.minQuantity
+  const unitSingular = getSingularUnit(item.unit)
   const { ref, handleRef, isDragging } = useDraggable({
     id: item.id,
     disabled: !draggable || !item.active,
@@ -54,48 +59,70 @@ export function MenuItemCard({
         delete (window as LunchDragWindow).__lunchDragItemId
       }}
       onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.effectAllowed = 'copy'
         event.dataTransfer.setData('text/plain', item.id)
       }}
       data-testid={`menu-card-${item.id}`}
-      data-state={state}
-      data-compact={compact}
-      data-no-lunch={isNoLunchItem(item)}
+      data-state={selected ? 'selected' : 'available'}
       data-dragging={isDragging}
     >
       <div className="menu-card__media">
         <img src={item.imageUrl} alt={item.altText} loading="lazy" />
-        {isNoLunchItem(item) ? <span className="menu-card__badge">No Lunch</span> : null}
       </div>
       <div className="menu-card__body">
         <div>
-          {showCategory ? <p className="menu-card__category">{item.categoryId.replaceAll('-', ' ')}</p> : null}
+          <p className="menu-card__category">{categoryLabel}</p>
           <h3>{item.label}</h3>
+          <p className="menu-card__meta">
+            {item.unit} · max {item.maxQuantity}
+          </p>
         </div>
         <div className="menu-card__actions">
           {draggable ? (
-            <button ref={setHandleRef} type="button" className="button button--ghost">
+            <button ref={setHandleRef} type="button" className="button button--ghost menu-card__drag">
               Drag
             </button>
           ) : null}
-          {onChoose ? (
+          {selected ? (
+            <div className="quantity-control" aria-label={`${item.label} quantity`}>
+              <button
+                type="button"
+                className="quantity-control__button"
+                onClick={() => onDecrease(item.id)}
+                disabled={!canDecrease && quantity <= item.minQuantity}
+                aria-label={`Remove one ${unitSingular} of ${item.label}`}
+              >
+                -
+              </button>
+              <span className="quantity-control__value" aria-live="polite">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                className="quantity-control__button"
+                onClick={() => onIncrease(item.id)}
+                disabled={!canIncrease}
+                aria-label={`Add one ${unitSingular} of ${item.label}`}
+              >
+                +
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
               className="button button--primary"
               data-testid={`choose-${item.id}`}
               onClick={() => onChoose(item.id)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  onChoose(item.id)
-                }
-              }}
             >
-              {state === 'selected' ? 'Selected' : 'Choose'}
+              Choose
             </button>
-          ) : null}
+          )}
         </div>
       </div>
     </article>
   )
+}
+
+function getSingularUnit(unit: string): string {
+  return unit.endsWith('s') ? unit.slice(0, -1) : unit
 }

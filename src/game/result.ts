@@ -1,11 +1,13 @@
 import type { MenuConfig, SelectionState, SubmissionResult } from '../types/menu'
+import { getSelectedItems } from './validation'
 import { MAX_SCORE } from './scoring'
 
-export const GAME_VERSION = '1.0.0'
+export const GAME_VERSION = '2.0.0'
 
 export function createSubmissionResult(
   menu: MenuConfig,
   selections: SelectionState,
+  noLunchSelected: boolean,
   score: number,
   completed: boolean,
 ): SubmissionResult {
@@ -16,8 +18,12 @@ export function createSubmissionResult(
     score,
     maxScore: MAX_SCORE,
     submittedAt: new Date().toISOString(),
-    selections: Object.fromEntries(
-      Object.entries(selections).filter((entry): entry is [string, string] => entry[1] !== null),
-    ),
+    noLunch: noLunchSelected,
+    selections: getSelectedItems(menu, selections).map(({ item, quantity }) => ({
+      itemId: item.id,
+      categoryId: item.categoryId,
+      quantity,
+      unit: item.unit,
+    })),
   }
 }

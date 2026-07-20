@@ -1,22 +1,22 @@
 import type { CategoryId, MenuConfig, MenuItem, MenuItemId, SelectionState } from '../types/menu'
 
 export interface InvalidSelection {
-  categoryId: CategoryId
   itemId: MenuItemId
+  quantity: number
   reason: string
 }
 
 export interface SubmissionValidation {
   completed: boolean
   valid: boolean
-  missingCategoryIds: CategoryId[]
+  noLunch: boolean
+  selectedItemIds: MenuItemId[]
   invalidSelections: InvalidSelection[]
-  duplicateItemIds: MenuItemId[]
   messages: string[]
 }
 
-export function createEmptySelections(menu: MenuConfig): SelectionState {
-  return Object.fromEntries(menu.categories.map((category) => [category.id, null]))
+export function createEmptySelections(): SelectionState {
+  return {}
 }
 
 export function getActiveItemsForCategory(menu: MenuConfig, categoryId: CategoryId): MenuItem[] {
@@ -33,103 +33,189 @@ export function getItemById(menu: MenuConfig, itemId: MenuItemId | null): MenuIt
   return menu.items.find((item) => item.id === itemId)
 }
 
-export function isValidPlacement(menu: MenuConfig, itemId: MenuItemId, categoryId: CategoryId): boolean {
-  const item = getItemById(menu, itemId)
-  const categoryExists = menu.categories.some((category) => category.id === categoryId)
-
-  return Boolean(item?.active && categoryExists && item.categoryId === categoryId)
+export function getCategoryLabel(menu: MenuConfig, categoryId: CategoryId): string {
+  return menu.categories.find((category) => category.id === categoryId)?.label ?? categoryId
 }
 
-export function applySelection(
-  menu: MenuConfig,
-  selections: SelectionState,
-  itemId: MenuItemId,
-  categoryId: CategoryId,
-): SelectionState {
-  if (!isValidPlacement(menu, itemId, categoryId)) {
+export function getItemQuantity(selections: SelectionState, itemId: MenuItemId): number {
+  return selections[itemId] ?? 0
+}
+
+export function getSelectedItems(menu: MenuConfig, selections: SelectionState): Array<{ item: MenuItem; quantity: number }> {
+  return menu.items
+    .map((item) => ({ item, quantity: getItemQuantity(selections, item.id) }))
+    .filter(({ item, quantity }) => item.active && quantity > 0)
+    .sort((left, right) => {
+      const categoryOrder =
+        (menu.categories.find((category) => category.id === left.item.categoryId)?.order ?? 0) -
+        (menu.categories.find((category) => category.id === right.item.categoryId)?.order ?? 0)
+
+      return categoryOrder === 0 ? left.item.order - right.item.order : categoryOrder
+    })
+}
+
+export function getSelectedDishCount(selections: SelectionState): number {
+  return Object.values(selections).filter((quantity) => quantity > 0).length
+}
+
+export function getTotalQuantity(selections: SelectionState): number {
+  return Object.values(selections).reduce((total, quantity) => total + Math.max(0, quantity), 0)
+}
+
+export function isSelectableFoodItem(menu: MenuConfig, itemId: MenuItemId): boolean {
+  const item = getItemById(menu, itemId)
+
+  return Boolean(item?.active && item.itemType === 'food')
+}
+
+export function addDefaultQuantity(menu: MenuConfig, selections: SelectionState, itemId: MenuItemId): SelectionState {
+  const item = getItemById(menu, itemId)
+
+  if (!item || !isSelectableFoodItem(menu, itemId)) {
     return selections
   }
 
-  const nextSelections = { ...selections }
-
-  for (const selectedCategoryId of Object.keys(nextSelections)) {
-    if (nextSelections[selectedCategoryId] === itemId) {
-      nextSelections[selectedCategoryId] = null
-    }
+  if (getItemQuantity(selections, itemId) > 0) {
+    return selections
   }
 
-  nextSelections[categoryId] = itemId
+  return setItemQuantity(menu, selections, itemId, item.defaultQuantity)
+}
+
+export function changeItemQuantity(
+  menu: MenuConfig,
+  selections: SelectionState,
+  itemId: MenuItemId,
+  direction: 1 | -1,
+): SelectionState {
+  const item = getItemById(menu, itemId)
+
+  if (!item || !isSelectableFoodItem(menu, itemId)) {
+    return selections
+  }
+
+  const nextQuantity = getItemQuantity(selections, itemId) + item.quantityStep * direction
+
+  return setItemQuantity(menu, selections, itemId, nextQuantity)
+}
+
+export function removeItemSelection(selections: SelectionState, itemId: MenuItemId): SelectionState {
+  const nextSelections = { ...selections }
+  delete nextSelections[itemId]
 
   return nextSelections
 }
 
-export function removeSelection(selections: SelectionState, categoryId: CategoryId): SelectionState {
+export function setItemQuantity(
+  menu: MenuConfig,
+  selections: SelectionState,
+  itemId: MenuItemId,
+  quantity: number,
+): SelectionState {
+  const item = getItemById(menu, itemId)
+
+  if (!item || !isSelectableFoodItem(menu, itemId)) {
+    return selections
+  }
+
+  const clampedQuantity = clampQuantity(item, quantity)
+
+  if (clampedQuantity <= item.minQuantity) {
+    return removeItemSelection(selections, itemId)
+  }
+
   return {
     ...selections,
-    [categoryId]: null,
+    [itemId]: clampedQuantity,
   }
 }
 
-export function validateSubmission(menu: MenuConfig, selections: SelectionState): SubmissionValidation {
+export function canIncreaseQuantity(item: MenuItem, quantity: number): boolean {
+  return quantity + item.quantityStep <= item.maxQuantity
+}
+
+export function canDecreaseQuantity(item: MenuItem, quantity: number): boolean {
+  return quantity - item.quantityStep >= item.minQuantity
+}
+
+export function validateSubmission(
+  menu: MenuConfig,
+  selections: SelectionState,
+  noLunchSelected: boolean,
+): SubmissionValidation {
   const messages: string[] = []
   const invalidSelections: InvalidSelection[] = []
-  const missingCategoryIds = menu.categories
-    .filter((category) => category.required && !selections[category.id])
-    .map((category) => category.id)
+  const selectedItemIds = Object.entries(selections)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([itemId]) => itemId)
 
-  for (const [categoryId, itemId] of Object.entries(selections)) {
-    if (!itemId) {
+  for (const [itemId, quantity] of Object.entries(selections)) {
+    if (quantity <= 0) {
       continue
     }
 
-    if (!isValidPlacement(menu, itemId, categoryId)) {
+    const item = getItemById(menu, itemId)
+
+    if (!item || !item.active) {
+      invalidSelections.push({ itemId, quantity, reason: 'This item is not available in the active menu.' })
+      continue
+    }
+
+    if (!isValidQuantity(item, quantity)) {
       invalidSelections.push({
-        categoryId,
         itemId,
-        reason: 'This item does not belong in that category.',
+        quantity,
+        reason: `${item.label} quantity must be between ${item.minQuantity} and ${item.maxQuantity} ${item.unit}.`,
       })
     }
   }
 
-  const selectedItemIds = Object.values(selections).filter((itemId): itemId is string => Boolean(itemId))
-  const duplicateItemIds = selectedItemIds.filter(
-    (itemId, index) => selectedItemIds.indexOf(itemId) !== index,
-  )
+  if (noLunchSelected && selectedItemIds.length > 0) {
+    invalidSelections.push({
+      itemId: 'noLunch',
+      quantity: 1,
+      reason: 'No lunch today cannot be combined with food selections.',
+    })
+  }
 
-  if (missingCategoryIds.length > 0) {
-    const labels = missingCategoryIds.map((categoryId) => getCategoryLabel(menu, categoryId)).join(', ')
-    messages.push(`Choose one option for: ${labels}.`)
+  const hasFood = selectedItemIds.length > 0
+  const completed = hasFood || noLunchSelected
+
+  if (!completed) {
+    messages.push('Choose at least one dish, or select No lunch today.')
   }
 
   if (invalidSelections.length > 0) {
-    messages.push('Move each item back to its matching meal category.')
+    messages.push('Check the selected quantities and try again.')
   }
 
-  if (duplicateItemIds.length > 0) {
-    messages.push('Each lunch item can only be used once.')
-  }
-
-  const completed = missingCategoryIds.length === 0
-  const valid = completed && invalidSelections.length === 0 && duplicateItemIds.length === 0
-
-  if (valid) {
-    messages.push('Lunch menu complete. Thank you for helping reduce food waste.')
+  if (completed && invalidSelections.length === 0) {
+    messages.push('Lunch plan complete. Thank you for helping reduce food waste.')
   }
 
   return {
     completed,
-    valid,
-    missingCategoryIds,
+    valid: completed && invalidSelections.length === 0,
+    noLunch: noLunchSelected,
+    selectedItemIds,
     invalidSelections,
-    duplicateItemIds,
     messages,
   }
 }
 
-export function isNoLunchItem(item: MenuItem | undefined): boolean {
-  return Boolean(item?.itemType === 'noLunch' || item?.rules?.countsAsNoLunch)
+function clampQuantity(item: MenuItem, quantity: number): number {
+  const boundedQuantity = Math.min(item.maxQuantity, Math.max(item.minQuantity, quantity))
+  const stepsFromMinimum = Math.round((boundedQuantity - item.minQuantity) / item.quantityStep)
+
+  return item.minQuantity + stepsFromMinimum * item.quantityStep
 }
 
-function getCategoryLabel(menu: MenuConfig, categoryId: CategoryId): string {
-  return menu.categories.find((category) => category.id === categoryId)?.label ?? categoryId
+function isValidQuantity(item: MenuItem, quantity: number): boolean {
+  if (quantity < item.minQuantity || quantity > item.maxQuantity) {
+    return false
+  }
+
+  const stepsFromMinimum = (quantity - item.minQuantity) / item.quantityStep
+
+  return Number.isInteger(Number(stepsFromMinimum.toFixed(8)))
 }

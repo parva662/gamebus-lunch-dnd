@@ -1,7 +1,7 @@
 export type CategoryId = string
 export type MenuItemId = string
 
-export type MenuItemType = 'food' | 'noLunch'
+export type MenuItemType = 'food'
 
 export interface MenuCategory {
   id: CategoryId
@@ -11,8 +11,10 @@ export interface MenuCategory {
   order: number
 }
 
-export interface MenuItemRules {
-  countsAsNoLunch?: boolean
+export interface NoLunchConfig {
+  enabled: boolean
+  label: string
+  description?: string
 }
 
 export interface MenuItem {
@@ -25,13 +27,18 @@ export interface MenuItem {
   order: number
   active: boolean
   itemType: MenuItemType
-  rules?: MenuItemRules
+  unit: string
+  minQuantity: number
+  maxQuantity: number
+  quantityStep: number
+  defaultQuantity: number
 }
 
 export interface MenuConfig {
   id: string
   title: string
   description?: string
+  noLunch: NoLunchConfig
   categories: MenuCategory[]
   items: MenuItem[]
 }
@@ -40,14 +47,22 @@ export interface CurrentMenuConfig {
   activeMenu: string
 }
 
-export type SelectionState = Record<CategoryId, MenuItemId | null>
+export type SelectionState = Record<MenuItemId, number>
+
+export interface SubmissionSelection {
+  itemId: MenuItemId
+  categoryId: CategoryId
+  quantity: number
+  unit: string
+}
 
 export interface SubmissionResult {
-  gameVersion: '1.0.0'
+  gameVersion: '2.0.0'
   menuId: string
   completed: boolean
   score: number
   maxScore: number
   submittedAt: string
-  selections: Record<CategoryId, MenuItemId>
+  noLunch: boolean
+  selections: SubmissionSelection[]
 }

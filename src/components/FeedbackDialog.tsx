@@ -1,6 +1,6 @@
 import type { GameFeedback } from '../game/useLunchGame'
 import type { MenuConfig } from '../types/menu'
-import { getItemById } from '../game/validation'
+import { getCategoryLabel, getItemById } from '../game/validation'
 
 interface FeedbackDialogProps {
   feedback: GameFeedback
@@ -44,17 +44,32 @@ function SubmissionSummary({ feedback, menu }: { feedback: GameFeedback; menu: M
     return null
   }
 
+  if (feedback.result.noLunch) {
+    return (
+      <div className="submission-summary">
+        <h3>Selected plan</h3>
+        <p>{menu.noLunch.label}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="submission-summary">
-      <h3>Selected items</h3>
+      <h3>Selected dishes</h3>
       <dl>
-        {menu.categories.map((category) => {
-          const item = getItemById(menu, feedback.result?.selections[category.id] ?? null)
+        {feedback.result.selections.map((selection) => {
+          const item = getItemById(menu, selection.itemId)
+          const label = item?.label ?? selection.itemId
 
           return (
-            <div key={category.id}>
-              <dt>{category.label}</dt>
-              <dd>{item?.label ?? 'Not selected'}</dd>
+            <div key={selection.itemId}>
+              <dt>
+                {label}
+                <span>{getCategoryLabel(menu, selection.categoryId)}</span>
+              </dt>
+              <dd>
+                {selection.quantity} {selection.unit}
+              </dd>
             </div>
           )
         })}

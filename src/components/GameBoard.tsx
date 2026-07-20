@@ -1,6 +1,6 @@
 import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react'
 import type { MenuConfig } from '../types/menu'
-import { getActiveItemsForCategory, getItemById, isNoLunchItem } from '../game/validation'
+import { getActiveItemsForCategory, getCategoryLabel, getItemQuantity } from '../game/validation'
 import type { LunchGameState } from '../game/useLunchGame'
 import { ActionButtons } from './ActionButtons'
 import { DropZone } from './DropZone'
@@ -14,8 +14,6 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ menu, game }: GameBoardProps) {
-  const selectedIds = new Set(Object.values(game.selections).filter(Boolean))
-
   function handleDragEnd(event: DragEndEvent): void {
     if (event.canceled) {
       return
@@ -24,8 +22,8 @@ export function GameBoard({ menu, game }: GameBoardProps) {
     const sourceId = event.operation.source?.id
     const targetId = event.operation.target?.id
 
-    if (typeof sourceId === 'string' && typeof targetId === 'string') {
-      game.placeItem(sourceId, targetId)
+    if (typeof sourceId === 'string' && targetId === 'selection-drop-area') {
+      game.dropItem(sourceId)
     }
   }
 
@@ -36,7 +34,7 @@ export function GameBoard({ menu, game }: GameBoardProps) {
           <div>
             <p className="app-header__eyebrow">University Canteen</p>
             <h1>{menu.title}</h1>
-            <p>Choose one option per category.</p>
+            <p>Choose dishes and set the quantities you plan to eat.</p>
           </div>
         </header>
 
@@ -44,7 +42,7 @@ export function GameBoard({ menu, game }: GameBoardProps) {
           <section className="choices-panel" id="today-menu" aria-labelledby="choices-title">
             <div className="panel-heading">
               <h2 id="choices-title">Today&apos;s Menu</h2>
-              <p>Tap Choose or drag a card into your selection.</p>
+              <p>Tap Choose, use plus and minus, or drag a card into your selection.</p>
             </div>
 
             <div className="choice-groups">
@@ -55,24 +53,17 @@ export function GameBoard({ menu, game }: GameBoardProps) {
                   <section className="choice-group" key={category.id} aria-labelledby={`${category.id}-choices`}>
                     <h3 id={`${category.id}-choices`}>{category.label}</h3>
                     <div className="card-grid">
-                      {items.map((item) =>
-                        isNoLunchItem(item) ? (
-                          <NoLunchOption
-                            key={item.id}
-                            item={item}
-                            state={selectedIds.has(item.id) ? 'selected' : 'available'}
-                            onChoose={game.chooseItem}
-                          />
-                        ) : (
-                          <MenuItemCard
-                            key={item.id}
-                            item={item}
-                            state={selectedIds.has(item.id) ? 'selected' : 'available'}
-                            showCategory
-                            onChoose={game.chooseItem}
-                          />
-                        ),
-                      )}
+                      {items.map((item) => (
+                        <MenuItemCard
+                          key={item.id}
+                          item={item}
+                          quantity={getItemQuantity(game.selections, item.id)}
+                          categoryLabel={getCategoryLabel(menu, item.categoryId)}
+                          onChoose={game.chooseItem}
+                          onIncrease={game.increaseItem}
+                          onDecrease={game.decreaseItem}
+                        />
+                      ))}
                     </div>
                   </section>
                 )
@@ -82,43 +73,38 @@ export function GameBoard({ menu, game }: GameBoardProps) {
 
           <aside className="selection-panel" aria-labelledby="selection-title">
             <div className="panel-heading">
-              <h2 id="selection-title">Your lunch menu</h2>
+              <h2 id="selection-title">Your Selection</h2>
             </div>
 
             <ActionButtons
               compact
-              completedCount={game.completedCategoryCount}
-              requiredCount={game.requiredCategoryCount}
+              selectedDishCount={game.selectedDishCount}
+              totalQuantity={game.totalQuantity}
+              noLunchSelected={game.noLunchSelected}
               isSubmitting={game.isSubmitting}
               onReset={game.resetGame}
               onSubmit={() => void game.submitGame()}
             />
 
-            <div className="drop-zone-list">
-              {menu.categories.map((category) => {
-                const selectedItem = getItemById(menu, game.selections[category.id])
-                const availableCount = getActiveItemsForCategory(menu, category.id).length
+            <DropZone
+              menu={menu}
+              selections={game.selections}
+              onDropItem={game.dropItem}
+              onIncrease={game.increaseItem}
+              onDecrease={game.decreaseItem}
+              onRemove={game.removeItem}
+            />
 
-                return (
-                  <DropZone
-                    key={category.id}
-                    category={category}
-                    selectedItem={selectedItem}
-                    availableCount={availableCount}
-                    onClear={game.clearCategory}
-                    onDropItem={game.placeItem}
-                  />
-                )
-              })}
-            </div>
+            <NoLunchOption noLunch={menu.noLunch} selected={game.noLunchSelected} onToggle={game.toggleNoLunch} />
           </aside>
         </div>
 
         <div className="mobile-action-bar">
           <ActionButtons
             compact
-            completedCount={game.completedCategoryCount}
-            requiredCount={game.requiredCategoryCount}
+            selectedDishCount={game.selectedDishCount}
+            totalQuantity={game.totalQuantity}
+            noLunchSelected={game.noLunchSelected}
             isSubmitting={game.isSubmitting}
             onReset={game.resetGame}
             onSubmit={() => void game.submitGame()}

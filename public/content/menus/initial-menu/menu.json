@@ -1,34 +1,39 @@
 {
   "id": "initial-menu",
-  "title": "University Canteen Lunch Builder",
-  "description": "Choose one option for each meal category to complete today's lunch menu.",
+  "title": "University Canteen Buffet Planner",
+  "description": "Choose the dishes you plan to eat today and set a quantity for each one.",
+  "noLunch": {
+    "enabled": true,
+    "label": "No lunch today",
+    "description": "I will not eat at the canteen."
+  },
   "categories": [
     {
       "id": "vegetarian-lunch",
       "label": "Vegetarian Lunch",
-      "description": "Pick a vegetarian lunch choice, or choose No Vegetarian Lunch.",
-      "required": true,
+      "description": "Vegetarian dishes available today.",
+      "required": false,
       "order": 1
     },
     {
       "id": "main-lunch",
       "label": "Main Lunch",
-      "description": "Pick a main lunch choice, or choose No Lunch.",
-      "required": true,
+      "description": "Main lunch dishes available today.",
+      "required": false,
       "order": 2
     },
     {
       "id": "soup",
       "label": "Soup",
-      "description": "Pick a soup choice, or choose No Soup.",
-      "required": true,
+      "description": "Soup choices available today.",
+      "required": false,
       "order": 3
     },
     {
       "id": "dessert",
       "label": "Dessert",
-      "description": "Pick a dessert choice, or choose No Dessert.",
-      "required": true,
+      "description": "Dessert choices available today.",
+      "required": false,
       "order": 4
     }
   ],
@@ -41,7 +46,12 @@
       "altText": "Crispy vegetable patties on paper squares.",
       "order": 1,
       "active": true,
-      "itemType": "food"
+      "itemType": "food",
+      "unit": "pieces",
+      "minQuantity": 0,
+      "maxQuantity": 6,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "pasta-salad",
@@ -51,20 +61,12 @@
       "altText": "A bowl of creamy pasta salad with vegetables.",
       "order": 2,
       "active": true,
-      "itemType": "food"
-    },
-    {
-      "id": "no-vegetarian-lunch",
-      "categoryId": "vegetarian-lunch",
-      "label": "No Vegetarian Lunch",
-      "imagePath": "images/file-6a4b794507e5e.png",
-      "altText": "A dramatic image with text asking No Vegi Lunch?",
-      "order": 3,
-      "active": true,
-      "itemType": "noLunch",
-      "rules": {
-        "countsAsNoLunch": true
-      }
+      "itemType": "food",
+      "unit": "portions",
+      "minQuantity": 0,
+      "maxQuantity": 3,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "rice-meat-plate",
@@ -74,7 +76,12 @@
       "altText": "A plate with rice, meat, broccoli, and chopsticks.",
       "order": 1,
       "active": true,
-      "itemType": "food"
+      "itemType": "food",
+      "unit": "portions",
+      "minQuantity": 0,
+      "maxQuantity": 3,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "meat-rolls",
@@ -84,20 +91,12 @@
       "altText": "Slices of meat rolled with lettuce and tomato.",
       "order": 2,
       "active": true,
-      "itemType": "food"
-    },
-    {
-      "id": "no-main-lunch",
-      "categoryId": "main-lunch",
-      "label": "No Lunch",
-      "imagePath": "images/file-6a4b79303034c.png",
-      "altText": "A lunch tray image with large No Lunch text.",
-      "order": 3,
-      "active": true,
-      "itemType": "noLunch",
-      "rules": {
-        "countsAsNoLunch": true
-      }
+      "itemType": "food",
+      "unit": "pieces",
+      "minQuantity": 0,
+      "maxQuantity": 6,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "orange-soup",
@@ -107,7 +106,12 @@
       "altText": "A bowl of orange soup with green herbs.",
       "order": 1,
       "active": true,
-      "itemType": "food"
+      "itemType": "food",
+      "unit": "cups",
+      "minQuantity": 0,
+      "maxQuantity": 3,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "tomato-soup",
@@ -117,20 +121,12 @@
       "altText": "A white bowl filled with red tomato soup.",
       "order": 2,
       "active": true,
-      "itemType": "food"
-    },
-    {
-      "id": "no-soup",
-      "categoryId": "soup",
-      "label": "No Soup",
-      "imagePath": "images/file-6a4b797256c6d.png",
-      "altText": "An empty soup bowl image with large No Soup text.",
-      "order": 3,
-      "active": true,
-      "itemType": "noLunch",
-      "rules": {
-        "countsAsNoLunch": true
-      }
+      "itemType": "food",
+      "unit": "cups",
+      "minQuantity": 0,
+      "maxQuantity": 3,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "chocolate-cake",
@@ -140,7 +136,12 @@
       "altText": "A slice of chocolate cake with raspberries.",
       "order": 1,
       "active": true,
-      "itemType": "food"
+      "itemType": "food",
+      "unit": "slices",
+      "minQuantity": 0,
+      "maxQuantity": 3,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     },
     {
       "id": "berry-cheesecake",
@@ -150,20 +151,12 @@
       "altText": "Small cheesecake bars with berries on a plate.",
       "order": 2,
       "active": true,
-      "itemType": "food"
-    },
-    {
-      "id": "no-dessert",
-      "categoryId": "dessert",
-      "label": "No Dessert",
-      "imagePath": "images/file-6a4b79a37ec67.png",
-      "altText": "A chocolate cake character image with large No Dessert text.",
-      "order": 3,
-      "active": true,
-      "itemType": "noLunch",
-      "rules": {
-        "countsAsNoLunch": true
-      }
+      "itemType": "food",
+      "unit": "pieces",
+      "minQuantity": 0,
+      "maxQuantity": 3,
+      "quantityStep": 1,
+      "defaultQuantity": 1
     }
   ]
 }

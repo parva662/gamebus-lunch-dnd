@@ -1,12 +1,16 @@
 import { useMemo, useRef, useState } from 'react'
-import type { CategoryId, MenuConfig, MenuItemId, SelectionState, SubmissionResult } from '../types/menu'
+import type { MenuConfig, MenuItemId, SelectionState, SubmissionResult } from '../types/menu'
 import { createSubmissionResult } from './result'
 import { calculateScore } from './scoring'
 import {
-  applySelection,
+  addDefaultQuantity,
+  changeItemQuantity,
   createEmptySelections,
-  isValidPlacement,
-  removeSelection,
+  getItemById,
+  getItemQuantity,
+  getSelectedDishCount,
+  getTotalQuantity,
+  removeItemSelection,
   validateSubmission,
 } from './validation'
 
@@ -21,86 +25,133 @@ export interface GameFeedback {
 
 export interface LunchGameState {
   selections: SelectionState
+  noLunchSelected: boolean
   feedback: GameFeedback | null
   isSubmitting: boolean
-  completedCategoryCount: number
-  requiredCategoryCount: number
+  selectedDishCount: number
+  totalQuantity: number
   chooseItem: (itemId: MenuItemId) => void
-  placeItem: (itemId: MenuItemId, categoryId: CategoryId) => void
-  clearCategory: (categoryId: CategoryId) => void
+  dropItem: (itemId: MenuItemId) => void
+  increaseItem: (itemId: MenuItemId) => void
+  decreaseItem: (itemId: MenuItemId) => void
+  removeItem: (itemId: MenuItemId) => void
+  toggleNoLunch: () => void
   resetGame: () => void
   submitGame: () => Promise<void>
   closeFeedback: () => void
 }
 
 export function useLunchGame(menu: MenuConfig): LunchGameState {
-  const [selections, setSelections] = useState<SelectionState>(() => createEmptySelections(menu))
+  const [selections, setSelections] = useState<SelectionState>(() => createEmptySelections())
+  const [noLunchSelected, setNoLunchSelected] = useState(false)
   const [feedback, setFeedback] = useState<GameFeedback | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingRef = useRef(false)
 
-  const requiredCategoryCount = useMemo(
-    () => menu.categories.filter((category) => category.required).length,
-    [menu.categories],
-  )
-
-  const completedCategoryCount = useMemo(
-    () =>
-      menu.categories.filter((category) => category.required && Boolean(selections[category.id])).length,
-    [menu.categories, selections],
-  )
-
-  function placeItem(itemId: MenuItemId, categoryId: CategoryId): void {
-    const item = menu.items.find((candidate) => candidate.id === itemId)
-    const category = menu.categories.find((candidate) => candidate.id === categoryId)
-
-    if (!item || !category || !isValidPlacement(menu, itemId, categoryId)) {
-      setFeedback({
-        kind: 'error',
-        title: 'That item belongs somewhere else',
-        messages: ['Choose an item that matches the meal category.'],
-      })
-      return
-    }
-
-    setSelections((current) => applySelection(menu, current, itemId, categoryId))
-    setFeedback({
-      kind: 'info',
-      title: `${item.label} selected`,
-      messages: [`${category.label} now uses ${item.label}.`],
-    })
-  }
+  const selectedDishCount = useMemo(() => getSelectedDishCount(selections), [selections])
+  const totalQuantity = useMemo(() => getTotalQuantity(selections), [selections])
 
   function chooseItem(itemId: MenuItemId): void {
-    const item = menu.items.find((candidate) => candidate.id === itemId)
+    const item = getItemById(menu, itemId)
 
     if (!item) {
       return
     }
 
-    placeItem(item.id, item.categoryId)
+    const currentQuantity = getItemQuantity(selections, itemId)
+
+    setNoLunchSelected(false)
+    setSelections((current) => addDefaultQuantity(menu, current, itemId))
+    setFeedback({
+      kind: 'info',
+      title: currentQuantity > 0 ? `${item.label} is already selected` : `${item.label} added`,
+      messages:
+        currentQuantity > 0
+          ? ['Use plus and minus controls to change the quantity.']
+          : [`Quantity set to ${item.defaultQuantity} ${item.unit}.`],
+    })
   }
 
-  function clearCategory(categoryId: CategoryId): void {
-    const category = menu.categories.find((candidate) => candidate.id === categoryId)
+  function dropItem(itemId: MenuItemId): void {
+    const item = getItemById(menu, itemId)
 
-    setSelections((current) => removeSelection(current, categoryId))
+    if (!item) {
+      return
+    }
 
-    if (category) {
+    const currentQuantity = getItemQuantity(selections, itemId)
+
+    setNoLunchSelected(false)
+    setSelections((current) => addDefaultQuantity(menu, current, itemId))
+    setFeedback({
+      kind: 'info',
+      title: currentQuantity > 0 ? `${item.label} is already selected` : `${item.label} added`,
+      messages:
+        currentQuantity > 0
+          ? ['Dragging it again does not increase quantity. Use plus and minus controls instead.']
+          : [`Quantity set to ${item.defaultQuantity} ${item.unit}.`],
+    })
+  }
+
+  function increaseItem(itemId: MenuItemId): void {
+    const item = getItemById(menu, itemId)
+
+    if (!item) {
+      return
+    }
+
+    setNoLunchSelected(false)
+    setSelections((current) => changeItemQuantity(menu, current, itemId, 1))
+  }
+
+  function decreaseItem(itemId: MenuItemId): void {
+    setSelections((current) => changeItemQuantity(menu, current, itemId, -1))
+  }
+
+  function removeItem(itemId: MenuItemId): void {
+    const item = getItemById(menu, itemId)
+    setSelections((current) => removeItemSelection(current, itemId))
+
+    if (item) {
       setFeedback({
         kind: 'info',
-        title: `${category.label} cleared`,
-        messages: ['Choose another option when you are ready.'],
+        title: `${item.label} removed`,
+        messages: ['Choose it again if you want to add it back.'],
       })
     }
   }
 
+  function toggleNoLunch(): void {
+    if (!menu.noLunch.enabled) {
+      return
+    }
+
+    setNoLunchSelected((current) => {
+      const nextValue = !current
+
+      if (nextValue) {
+        setSelections(createEmptySelections())
+      }
+
+      setFeedback({
+        kind: 'info',
+        title: nextValue ? `${menu.noLunch.label} selected` : `${menu.noLunch.label} cleared`,
+        messages: nextValue
+          ? ['Food selections were cleared.']
+          : ['Choose dishes when you are ready.'],
+      })
+
+      return nextValue
+    })
+  }
+
   function resetGame(): void {
-    setSelections(createEmptySelections(menu))
+    setSelections(createEmptySelections())
+    setNoLunchSelected(false)
     setFeedback({
       kind: 'info',
-      title: 'Selections reset',
-      messages: ['Start again by choosing one option for each category.'],
+      title: 'Lunch plan reset',
+      messages: ['Choose dishes or select No lunch today.'],
     })
   }
 
@@ -113,13 +164,13 @@ export function useLunchGame(menu: MenuConfig): LunchGameState {
     setIsSubmitting(true)
 
     try {
-      const validation = validateSubmission(menu, selections)
+      const validation = validateSubmission(menu, selections, noLunchSelected)
       const score = calculateScore(validation)
 
       if (!validation.valid) {
         setFeedback({
           kind: 'error',
-          title: 'Menu is not complete yet',
+          title: 'Lunch plan is not complete',
           messages: [...validation.messages, `Score: ${score} of 20.`],
         })
         return
@@ -127,13 +178,13 @@ export function useLunchGame(menu: MenuConfig): LunchGameState {
 
       await new Promise((resolve) => window.setTimeout(resolve, 150))
 
-      const result = createSubmissionResult(menu, selections, score, true)
+      const result = createSubmissionResult(menu, selections, noLunchSelected, score, true)
       console.log('Lunch game submission result', result)
 
       setFeedback({
         kind: 'success',
-        title: 'Submission successful',
-        messages: [`Score: ${score} of 20.`, 'Your completed lunch menu is ready.'],
+        title: 'Lunch plan submitted',
+        messages: [`Score: ${score} of 20.`],
         result,
       })
     } finally {
@@ -148,13 +199,17 @@ export function useLunchGame(menu: MenuConfig): LunchGameState {
 
   return {
     selections,
+    noLunchSelected,
     feedback,
     isSubmitting,
-    completedCategoryCount,
-    requiredCategoryCount,
+    selectedDishCount,
+    totalQuantity,
     chooseItem,
-    placeItem,
-    clearCategory,
+    dropItem,
+    increaseItem,
+    decreaseItem,
+    removeItem,
+    toggleNoLunch,
     resetGame,
     submitGame,
     closeFeedback,

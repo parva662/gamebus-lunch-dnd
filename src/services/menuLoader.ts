@@ -1,4 +1,4 @@
-import type { CurrentMenuConfig, MenuCategory, MenuConfig, MenuItem } from '../types/menu'
+import type { CurrentMenuConfig, MenuCategory, MenuConfig, MenuItem, NoLunchConfig } from '../types/menu'
 
 const MENU_ROOT = `${normalizeBaseUrl(import.meta.env.BASE_URL)}content/menus`
 
@@ -48,6 +48,7 @@ function validateMenu(raw: unknown, activeMenu: string): MenuConfig {
 
   assertNonEmptyString(raw.id, 'menu id')
   assertNonEmptyString(raw.title, 'menu title')
+  assertRecord(raw.noLunch, 'noLunch configuration')
   assertArray(raw.categories, 'menu categories')
   assertArray(raw.items, 'menu items')
 
@@ -58,6 +59,7 @@ function validateMenu(raw: unknown, activeMenu: string): MenuConfig {
     throw new MenuLoadError('The active menu id does not match current.json.')
   }
 
+  const noLunch = validateNoLunch(raw.noLunch)
   const categories = raw.categories.map(validateCategory).sort(byOrder)
   const categoryIds = new Set(categories.map((category) => category.id))
 
@@ -90,8 +92,24 @@ function validateMenu(raw: unknown, activeMenu: string): MenuConfig {
     id: menuId,
     title,
     description: typeof raw.description === 'string' ? raw.description : undefined,
+    noLunch,
     categories,
     items,
+  }
+}
+
+function validateNoLunch(raw: unknown): NoLunchConfig {
+  if (!isRecord(raw)) {
+    throw new MenuLoadError('The noLunch configuration is not valid.')
+  }
+
+  assertBoolean(raw.enabled, 'noLunch enabled')
+  assertNonEmptyString(raw.label, 'noLunch label')
+
+  return {
+    enabled: raw.enabled,
+    label: raw.label,
+    description: typeof raw.description === 'string' ? raw.description : undefined,
   }
 }
 
@@ -127,8 +145,34 @@ function validateItem(raw: unknown, menuId: string): MenuItem {
   assertNumber(raw.order, `item "${raw.id}" order`)
   assertBoolean(raw.active, `item "${raw.id}" active`)
 
-  if (raw.itemType !== 'food' && raw.itemType !== 'noLunch') {
-    throw new MenuLoadError(`Item "${raw.id}" has an invalid itemType.`)
+  if (raw.itemType !== 'food') {
+    throw new MenuLoadError(`Item "${raw.id}" has an invalid itemType. Only food items belong in the menu list.`)
+  }
+
+  assertNonEmptyString(raw.unit, `item "${raw.id}" unit`)
+  assertNumber(raw.minQuantity, `item "${raw.id}" minQuantity`)
+  assertNumber(raw.maxQuantity, `item "${raw.id}" maxQuantity`)
+  assertNumber(raw.quantityStep, `item "${raw.id}" quantityStep`)
+  assertNumber(raw.defaultQuantity, `item "${raw.id}" defaultQuantity`)
+
+  if (raw.minQuantity < 0) {
+    throw new MenuLoadError(`Item "${raw.id}" minQuantity cannot be below 0.`)
+  }
+
+  if (raw.maxQuantity < raw.minQuantity) {
+    throw new MenuLoadError(`Item "${raw.id}" maxQuantity cannot be lower than minQuantity.`)
+  }
+
+  if (raw.quantityStep <= 0) {
+    throw new MenuLoadError(`Item "${raw.id}" quantityStep must be greater than 0.`)
+  }
+
+  if (raw.defaultQuantity < raw.minQuantity || raw.defaultQuantity > raw.maxQuantity) {
+    throw new MenuLoadError(`Item "${raw.id}" defaultQuantity must be within the configured range.`)
+  }
+
+  if (!isQuantityAligned(raw.defaultQuantity, raw.minQuantity, raw.quantityStep)) {
+    throw new MenuLoadError(`Item "${raw.id}" defaultQuantity must match quantityStep increments.`)
   }
 
   return {
@@ -141,14 +185,11 @@ function validateItem(raw: unknown, menuId: string): MenuItem {
     order: raw.order,
     active: raw.active,
     itemType: raw.itemType,
-    rules: isRecord(raw.rules)
-      ? {
-          countsAsNoLunch:
-            typeof raw.rules.countsAsNoLunch === 'boolean'
-              ? raw.rules.countsAsNoLunch
-              : undefined,
-        }
-      : undefined,
+    unit: raw.unit,
+    minQuantity: raw.minQuantity,
+    maxQuantity: raw.maxQuantity,
+    quantityStep: raw.quantityStep,
+    defaultQuantity: raw.defaultQuantity,
   }
 }
 
@@ -196,6 +237,12 @@ function assertArray(value: unknown, label: string): asserts value is unknown[] 
   }
 }
 
+function assertRecord(value: unknown, label: string): asserts value is Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new MenuLoadError(`Missing or invalid ${label}.`)
+  }
+}
+
 function assertBoolean(value: unknown, label: string): asserts value is boolean {
   if (typeof value !== 'boolean') {
     throw new MenuLoadError(`Missing or invalid ${label}.`)
@@ -210,6 +257,12 @@ function assertNumber(value: unknown, label: string): asserts value is number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isQuantityAligned(quantity: number, minQuantity: number, quantityStep: number): boolean {
+  const offset = (quantity - minQuantity) / quantityStep
+
+  return Number.isInteger(Number(offset.toFixed(8)))
 }
 
 function getSafeErrorDetails(error: unknown): Record<string, string> {
